@@ -1,0 +1,131 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id          Int     @id @default(autoincrement()) @db.TinyInt @db.UnsignedTinyInt
+  name        String  @unique(map: "uq_roles_name") @db.VarChar(50)
+  description String? @db.VarChar(255)
+  
+  users User[]
+  
+  @@map("roles")
+}
+
+model User {
+  id            Int       @id @default(autoincrement()) @db.UnsignedInt
+  username      String    @unique(map: "uq_users_username") @db.VarChar(100)
+  email         String?   @unique(map: "uq_users_email") @db.VarChar(255)
+  passwordHash  String?   @map("password_hash") @db.VarChar(255)
+  roleId        Int       @default(2) @map("role_id") @db.TinyInt @db.UnsignedTinyInt
+  fullName      String?   @map("full_name") @db.VarChar(255)
+  isActive      Boolean   @default(true) @map("is_active") @db.TinyInt
+  refreshToken  String?   @map("refresh_token") @db.Text
+  createdAt     DateTime  @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt     DateTime? @updatedAt @map("updated_at") @db.DateTime(0)
+  lastLoginAt   DateTime? @map("last_login_at") @db.DateTime(0)
+  
+  role                    Role            @relation(fields: [roleId], references: [id], onUpdate: Cascade, map: "fk_users_role")
+  scriptsCreated          Script[]        @relation("ScriptCreatedBy")
+  scriptsUpdated          Script[]        @relation("ScriptUpdatedBy")
+  scriptVersions          ScriptVersion[] @relation("ScriptVersionCreatedBy")
+  executionLogs           ExecutionLog[]  @relation("ExecutionLogExecutedBy")
+  auditTrail              AuditTrail[]    @relation("AuditTrailPerformedBy")
+  
+  @@index([roleId], map: "fk_users_role")
+  @@map("users")
+}
+
+model Script {
+  id               Int       @id @default(autoincrement()) @db.UnsignedInt
+  name             String    @db.VarChar(200)
+  description      String?   @db.Text
+  body             String    @db.LongText
+  interpreter      String    @default("powershell") @db.VarChar(50)
+  entryPoint       String?   @map("entry_point") @db.VarChar(255)
+  parametersSchema String?   @map("parameters_schema") @db.LongText
+  tags             String?   @db.VarChar(255)
+  isEnabled        Boolean   @default(true) @map("is_enabled") @db.TinyInt
+  createdBy        Int?      @map("created_by") @db.UnsignedInt
+  updatedBy        Int?      @map("updated_by") @db.UnsignedInt
+  createdAt        DateTime  @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt        DateTime? @updatedAt @map("updated_at") @db.DateTime(0)
+  version          Int       @default(1) @db.UnsignedInt
+  lastExecutedAt   DateTime? @map("last_executed_at") @db.DateTime(0)
+  executionCount   Int       @default(0) @map("execution_count") @db.UnsignedInt
+  
+  creatorUser      User?            @relation("ScriptCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "fk_scripts_created_by")
+  updaterUser      User?            @relation("ScriptUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "fk_scripts_updated_by")
+  scriptVersions   ScriptVersion[]
+  executionLogs    ExecutionLog[]
+  
+  @@index([createdBy], map: "idx_scripts_created_by")
+  @@index([isEnabled], map: "idx_scripts_is_enabled")
+  @@index([updatedBy], map: "fk_scripts_updated_by")
+  @@fulltext([name, description, tags], map: "ft_scripts_name_desc_tags")
+  @@map("scripts")
+}
+
+model ScriptVersion {
+  id        BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  scriptId  Int      @map("script_id") @db.UnsignedInt
+  version   Int      @db.UnsignedInt
+  body      String   @db.LongText
+  notes     String?  @db.Text
+  createdBy Int?     @map("created_by") @db.UnsignedInt
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(0)
+  
+  script      Script @relation(fields: [scriptId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "fk_sv_script")
+  creatorUser User?  @relation("ScriptVersionCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "fk_sv_created_by")
+  
+  @@index([scriptId], map: "idx_sv_script_id")
+  @@index([createdBy], map: "fk_sv_created_by")
+  @@map("script_versions")
+}
+
+model ExecutionLog {
+  id               BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  scriptId         Int       @map("script_id") @db.UnsignedInt
+  executedBy       Int?      @map("executed_by") @db.UnsignedInt
+  hostName         String?   @map("host_name") @db.VarChar(255)
+  hostIp           String?   @map("host_ip") @db.VarChar(45)
+  startedAt        DateTime  @default(now()) @map("started_at") @db.DateTime(0)
+  finishedAt       DateTime? @map("finished_at") @db.DateTime(0)
+  durationSeconds  Decimal?  @map("duration_seconds") @db.Decimal(10, 3)
+  exitCode         Int?      @map("exit_code")
+  success          Boolean?  @db.TinyInt
+  stdout           String?   @db.LongText
+  stderr           String?   @db.LongText
+  executionContext String?   @map("execution_context") @db.LongText
+  
+  script       Script @relation(fields: [scriptId], references: [id], onDelete: Cascade, onUpdate: Cascade, map: "fk_el_script")
+  executorUser User?  @relation("ExecutionLogExecutedBy", fields: [executedBy], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "fk_el_executed_by")
+  
+  @@index([scriptId], map: "idx_el_script_id")
+  @@index([executedBy], map: "idx_el_executed_by")
+  @@map("execution_logs")
+}
+
+model AuditTrail {
+  id          BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  entity      String   @db.VarChar(100)
+  entityId    BigInt?  @map("entity_id") @db.UnsignedBigInt
+  action      String   @db.VarChar(50)
+  performedBy Int?     @map("performed_by") @db.UnsignedInt
+  performedAt DateTime @default(now()) @map("performed_at") @db.DateTime(0)
+  details     String?  @db.LongText
+  
+  performerUser User? @relation("AuditTrailPerformedBy", fields: [performedBy], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "fk_audit_performed_by")
+  
+  @@index([entity, entityId], map: "idx_audit_entity")
+  @@index([performedBy], map: "fk_audit_performed_by")
+  @@map("audit_trail")
+}
