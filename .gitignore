@@ -24,11 +24,23 @@ build/
 
 # Prisma
 prisma/migrations/
+prisma/
 
 # Temporales
 tmp/
 temp/
 *.tmp
+
+# Scripts de prueba y test
+backend/scripts/test-*.js
+backend/scripts/test-*.ps1
+backend/scripts/*-test.js
+backend/scripts/check-*.js
+backend/scripts/read-*.js
+backend/scripts/verify-*.js
+backend/scripts/seed-*.js
+backend/scripts/create-*.js
+execution_*.txt
 
 # Sistema
 .DS_Store
