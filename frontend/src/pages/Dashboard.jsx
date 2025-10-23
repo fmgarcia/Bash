@@ -2,12 +2,16 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../components/Header';
 import { scriptsAPI, executionsAPI } from '../services/api';
+import ExecutionOutputModal from '../components/ExecutionOutputModal';
 
 export default function Dashboard() {
   const [stats, setStats] = useState({ scripts: {}, executions: {} });
   const [recentScripts, setRecentScripts] = useState([]);
   const [recentExecutions, setRecentExecutions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showExecutionModal, setShowExecutionModal] = useState(false);
+  const [selectedExecution, setSelectedExecution] = useState(null);
+  const [loadingExecution, setLoadingExecution] = useState(false);
 
   useEffect(() => {
     loadDashboard();
@@ -32,6 +36,20 @@ export default function Dashboard() {
       console.error('Error cargando dashboard:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleExecutionClick = async (executionId) => {
+    try {
+      setLoadingExecution(true);
+      const response = await executionsAPI.getById(executionId);
+      setSelectedExecution(response.data.data);
+      setShowExecutionModal(true);
+    } catch (error) {
+      console.error('Error cargando ejecución:', error);
+      alert('Error al cargar los detalles de la ejecución');
+    } finally {
+      setLoadingExecution(false);
     }
   };
 
@@ -105,7 +123,11 @@ export default function Dashboard() {
             <div className="space-y-3">
               {recentExecutions.length > 0 ? (
                 recentExecutions.map((exec) => (
-                  <div key={exec.id} className="p-3 bg-gray-50 rounded">
+                  <div 
+                    key={exec.id} 
+                    className="p-3 bg-gray-50 rounded hover:bg-gray-100 cursor-pointer transition-colors"
+                    onClick={() => handleExecutionClick(exec.id)}
+                  >
                     <div className="flex justify-between items-start">
                       <div>
                         <h3 className="font-semibold">{exec.script?.name}</h3>
@@ -132,6 +154,30 @@ export default function Dashboard() {
           </div>
         </div>
       </main>
+
+      {/* Modal de detalles de ejecución */}
+      {selectedExecution && (
+        <ExecutionOutputModal
+          isOpen={showExecutionModal}
+          onClose={() => {
+            setShowExecutionModal(false);
+            setSelectedExecution(null);
+          }}
+          execution={selectedExecution}
+        />
+      )}
+
+      {/* Indicador de carga */}
+      {loadingExecution && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-700">Cargando detalles de la ejecución...</p>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
