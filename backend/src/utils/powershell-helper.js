@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs').promises;
 const os = require('os');
 const logger = require('./logger');
+const iconv = require('iconv-lite');
 
 /**
  * Ejecuta un script PowerShell de forma segura
@@ -63,35 +64,107 @@ class PowerShellHelper {
    * @returns {Promise<object>} - Información de la ejecución
    */
   async executeVisible(filePath) {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       const startTime = Date.now();
       
-      // Escapar la ruta del archivo para PowerShell
-      const escapedPath = filePath.replace(/\\/g, '\\\\');
+      // Crear archivos temporales para capturar stdout y exit code
+      const outputFile = path.join(this.tmpDir, `output_${Date.now()}_stdout.txt`);
+      const exitCodeFile = path.join(this.tmpDir, `output_${Date.now()}_exitcode.txt`);
       
-      // Comando para abrir PowerShell visible
-      const psCommand = `Start-Process powershell -ArgumentList '-NoProfile -ExecutionPolicy Bypass -File "${escapedPath}"' -WindowStyle Normal`;
+      // Escapar rutas para PowerShell
+      const escapedPath = filePath.replace(/'/g, "''");
+      const escapedOutputFile = outputFile.replace(/'/g, "''");
+      const escapedExitCodeFile = exitCodeFile.replace(/'/g, "''");
       
       logger.info(`Ejecutando script en modo VISIBLE: ${filePath}`);
+      
+      // Crear un script wrapper que:
+      // 1. Ejecuta el script usando Start-Transcript para capturar toda la salida
+      // 2. Muestra la ejecución en pantalla
+      // 3. Mantiene la ventana abierta al finalizar
+      const wrapperScript = `
+# Configurar encoding UTF-8
+chcp 65001 > \$null
+\$OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
+Write-Host ""
+Write-Host "===============================================" -ForegroundColor Cyan
+Write-Host "  INICIANDO EJECUCION DEL SCRIPT" -ForegroundColor Green
+Write-Host "===============================================" -ForegroundColor Cyan
+Write-Host ""
+
+# Iniciar transcripción para capturar TODO
+Start-Transcript -Path '${escapedOutputFile}' -Force
+
+try {
+    # Ejecutar el script
+    \$content = Get-Content -Path '${escapedPath}' -Encoding UTF8 -Raw
+    \$scriptBlock = [scriptblock]::Create(\$content)
+    & \$scriptBlock
+    
+    \$exitCode = \$LASTEXITCODE
+    if (\$null -eq \$exitCode) { \$exitCode = 0 }
+    
+} catch {
+    \$errorMsg = \$_.Exception.Message
+    Write-Error \$errorMsg
+    \$exitCode = 1
+}
+
+# Detener transcripción
+Stop-Transcript
+
+# Agregar información adicional legible al archivo de salida
+\$finalizacion = Get-Date -Format "yyyy/MM/dd HH:mm:ss"
+\$infoAdicional = @"
+
+===============================================
+  INFORMACION DE EJECUCION
+===============================================
+Fecha de finalizacion: \$finalizacion
+Exit Code: \$exitCode
+Estado: \$(if(\$exitCode -eq 0){'Exitoso'}else{'Fallido'})
+===============================================
+"@
+
+Add-Content -Path '${escapedOutputFile}' -Value \$infoAdicional -Encoding UTF8
+
+# Guardar exit code
+\$exitCode | Out-File -FilePath '${escapedExitCodeFile}' -Encoding UTF8 -NoNewline
+
+Write-Host ""
+Write-Host "===============================================" -ForegroundColor Cyan
+Write-Host "  EJECUCION COMPLETADA" -ForegroundColor Green
+Write-Host "  Fecha: \$finalizacion" -ForegroundColor White
+Write-Host "  Exit Code: \$exitCode" -ForegroundColor \$(if(\$exitCode -eq 0){'Green'}else{'Red'})
+Write-Host "===============================================" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "Presiona cualquier tecla para cerrar..." -ForegroundColor Yellow
+\$null = \$Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+      `.trim();
+      
+      // Guardar el wrapper script
+      const wrapperPath = path.join(this.tmpDir, `wrapper_${Date.now()}.ps1`);
+      await fs.writeFile(wrapperPath, wrapperScript, 'utf8');
+      
+      logger.info(`Wrapper script creado: ${wrapperPath}`);
+      logger.info(`Output file: ${outputFile}`);
+      logger.info(`Exit code file: ${exitCodeFile}`);
+      
+      // Ejecutar el wrapper con -NoExit para mantener la ventana abierta
+      const psCommand = `Start-Process powershell -ArgumentList '-NoExit','-NoProfile','-ExecutionPolicy','Bypass','-File','${wrapperPath.replace(/'/g, "''")}' -WindowStyle Normal -Wait`;
+      
+      logger.info(`Comando PowerShell: ${psCommand}`);
       
       const child = spawn('powershell.exe', [
         '-NoProfile',
         '-ExecutionPolicy', 'Bypass',
-        '-Command', psCommand
+        '-Command',
+        psCommand
       ], {
         windowsHide: false,
         detached: false
-      });
-
-      let stdout = '';
-      let stderr = '';
-
-      child.stdout?.on('data', (data) => {
-        stdout += data.toString();
-      });
-
-      child.stderr?.on('data', (data) => {
-        stderr += data.toString();
       });
 
       child.on('error', (error) => {
@@ -99,19 +172,64 @@ class PowerShellHelper {
         reject(error);
       });
 
-      child.on('close', (code) => {
+      child.on('close', async (code) => {
         const duration = ((Date.now() - startTime) / 1000).toFixed(3);
         
-        logger.info(`Script finalizado con código ${code} en ${duration}s`);
-        
-        resolve({
-          exitCode: code,
-          stdout: stdout,
-          stderr: stderr,
-          duration: parseFloat(duration),
-          success: code === 0,
-          mode: 'visible'
-        });
+        try {
+          // Leer los archivos de salida
+          let stdout = '';
+          let exitCode = code;
+          
+          try {
+            // Start-Transcript guarda en UTF-8, leer directamente
+            stdout = await fs.readFile(outputFile, 'utf8');
+            // Eliminar BOM UTF-8 si existe (﻿ - EF BB BF)
+            if (stdout.charCodeAt(0) === 0xFEFF) {
+              stdout = stdout.substring(1);
+            }
+          } catch (err) {
+            logger.warn(`No se pudo leer stdout: ${err.message}`);
+          }
+          
+          try {
+            const exitCodeContent = await fs.readFile(exitCodeFile, 'utf8');
+            exitCode = parseInt(exitCodeContent.trim()) || 0;
+          } catch (err) {
+            logger.warn(`No se pudo leer exit code: ${err.message}`);
+          }
+          
+          // Limpiar archivos temporales
+          setTimeout(async () => {
+            try {
+              await fs.unlink(outputFile).catch(() => {});
+              await fs.unlink(exitCodeFile).catch(() => {});
+              await fs.unlink(wrapperPath).catch(() => {});
+            } catch (err) {
+              logger.warn(`Error limpiando archivos temporales: ${err.message}`);
+            }
+          }, 2000);
+          
+          logger.info(`Script finalizado con código ${exitCode} en ${duration}s`);
+          
+          resolve({
+            exitCode: exitCode,
+            stdout: stdout,
+            stderr: '',
+            duration: parseFloat(duration),
+            success: exitCode === 0,
+            mode: 'visible'
+          });
+        } catch (error) {
+          logger.error(`Error leyendo resultados: ${error.message}`);
+          resolve({
+            exitCode: code,
+            stdout: '',
+            stderr: error.message,
+            duration: parseFloat(duration),
+            success: false,
+            mode: 'visible'
+          });
+        }
       });
     });
   }
@@ -129,17 +247,27 @@ class PowerShellHelper {
       
       logger.info(`Ejecutando script en modo HEADLESS: ${filePath}`);
       
+      // PowerShell lee archivos con BOM UTF-8 correctamente
+      // Forzamos la lectura del archivo como UTF-8 y configuramos la salida
+      const command = `
+        $PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'
+        $content = Get-Content -Path '${filePath}' -Encoding UTF8 -Raw
+        $scriptBlock = [scriptblock]::Create($content)
+        & $scriptBlock
+      `.trim();
+      
       const child = spawn('powershell.exe', [
         '-NoProfile',
         '-ExecutionPolicy', 'Bypass',
-        '-File', filePath
+        '-Command', command
       ], {
         windowsHide: true,
         shell: false
       });
 
-      let stdout = '';
-      let stderr = '';
+      // Usar buffers y luego convertir a UTF-8
+      const stdoutChunks = [];
+      const stderrChunks = [];
 
       // Timeout
       const timer = setTimeout(() => {
@@ -149,11 +277,11 @@ class PowerShellHelper {
       }, timeout);
 
       child.stdout.on('data', (data) => {
-        stdout += data.toString();
+        stdoutChunks.push(data);
       });
 
       child.stderr.on('data', (data) => {
-        stderr += data.toString();
+        stderrChunks.push(data);
       });
 
       child.on('error', (error) => {
@@ -165,6 +293,35 @@ class PowerShellHelper {
       child.on('close', (code) => {
         clearTimeout(timer);
         const duration = ((Date.now() - startTime) / 1000).toFixed(3);
+        
+        // PowerShell en Windows usa cp850 (OEM) en español
+        // Decodificamos desde cp850 a UTF-8
+        let stdout = iconv.decode(Buffer.concat(stdoutChunks), 'cp850');
+        const stderr = iconv.decode(Buffer.concat(stderrChunks), 'cp850');
+        
+        // Agregar información adicional legible al final del stdout (igual que en modo visible)
+        const finalizacion = new Date().toLocaleString('es-ES', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        }).replace(',', '');
+        
+        const infoAdicional = `
+
+===============================================
+  INFORMACION DE EJECUCION
+===============================================
+Fecha de finalizacion: ${finalizacion}
+Exit Code: ${code}
+Estado: ${code === 0 ? 'Exitoso' : 'Fallido'}
+Duracion: ${duration}s
+===============================================
+`;
+        
+        stdout += infoAdicional;
         
         if (timedOut) {
           logger.warn(`Script terminado por timeout`);

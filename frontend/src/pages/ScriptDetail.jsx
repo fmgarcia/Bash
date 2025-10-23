@@ -14,6 +14,7 @@ export default function ScriptDetail() {
   const [execution, setExecution] = useState(null);
   const [executing, setExecuting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [executionMode, setExecutionMode] = useState('visible'); // 'visible' o 'headless'
 
   useEffect(() => {
     loadScript();
@@ -51,7 +52,7 @@ export default function ScriptDetail() {
     setExecuting(true);
 
     try {
-      const response = await scriptsAPI.execute(id, parameters);
+      const response = await scriptsAPI.execute(id, parameters, executionMode);
       setExecution(response.data.data);
       setShowOutput(true);
     } catch (error) {
@@ -177,6 +178,35 @@ export default function ScriptDetail() {
               </div>
             </div>
           )}
+
+          <div className="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
+            <label className="flex items-center cursor-pointer">
+              <span className="text-gray-700 font-semibold mr-4">Modo de Ejecución:</span>
+              <div className="flex items-center">
+                <span className={`mr-3 text-sm ${executionMode === 'headless' ? 'text-gray-900 font-semibold' : 'text-gray-500'}`}>
+                  🔇 Oculto
+                </span>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={executionMode === 'visible'}
+                    onChange={(e) => setExecutionMode(e.target.checked ? 'visible' : 'headless')}
+                    className="sr-only peer"
+                    disabled={executing}
+                  />
+                  <div className="w-14 h-7 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-blue-600"></div>
+                </div>
+                <span className={`ml-3 text-sm ${executionMode === 'visible' ? 'text-gray-900 font-semibold' : 'text-gray-500'}`}>
+                  👁️ Visible
+                </span>
+              </div>
+            </label>
+            <p className="text-sm text-gray-600 mt-2 ml-36">
+              {executionMode === 'visible' 
+                ? '💡 Se abrirá una ventana de PowerShell durante la ejecución' 
+                : '💡 El script se ejecutará en segundo plano sin mostrar ventana'}
+            </p>
+          </div>
 
           <div className="flex space-x-4">
             <button

@@ -1,6 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const PowerShellHelper = require('../utils/powershell-helper');
 const { validateAndSanitizeParameters, replacePlaceholders } = require('../utils/sanitize');
+const { convertBigIntToString } = require('../utils/bigint-serializer');
 const logger = require('../utils/logger');
 
 const prisma = new PrismaClient();
@@ -12,9 +13,10 @@ class ExecutionService {
    * @param {number} scriptId - ID del script a ejecutar
    * @param {object} parameters - Parámetros del script
    * @param {number} userId - ID del usuario que ejecuta
+   * @param {string} mode - Modo de ejecución: 'visible' o 'headless'
    * @returns {Promise<object>} - Información de la ejecución
    */
-  async execute(scriptId, parameters = {}, userId) {
+  async execute(scriptId, parameters = {}, userId, mode = 'visible') {
     // Obtener script
     const script = await prisma.script.findUnique({
       where: { id: parseInt(scriptId) }
@@ -65,15 +67,14 @@ class ExecutionService {
       }
     });
 
-    logger.info(`Iniciando ejecución de script ${script.name} (ID: ${script.id}) por usuario ${userId}`);
+    logger.info(`Iniciando ejecución de script ${script.name} (ID: ${script.id}) por usuario ${userId} en modo ${mode}`);
 
     try {
-      // Ejecutar script según el modo configurado
-      const executionMode = process.env.EXECUTION_MODE || 'headless';
+      // Ejecutar script según el modo seleccionado por el usuario
       const result = await psHelper.execute(
         scriptContent,
         script.id,
-        executionMode,
+        mode, // 'visible' o 'headless'
         true // deleteAfter
       );
 
@@ -114,15 +115,28 @@ class ExecutionService {
         `Exit Code: ${result.exitCode}, Success: ${result.success}, Duration: ${result.duration}s`
       );
 
-      return {
+      const response = {
+        id: executionLog.id,
         executionLogId: executionLog.id,
-        ...result,
+        startedAt: executionLog.startedAt,
+        finishedAt: updatedLog.finishedAt,
+        durationSeconds: updatedLog.durationSeconds ? parseFloat(updatedLog.durationSeconds) : 0,
+        exitCode: updatedLog.exitCode,
+        success: updatedLog.success,
+        stdout: updatedLog.stdout,
+        stderr: updatedLog.stderr,
+        hostName: updatedLog.hostName,
+        hostIp: updatedLog.hostIp,
+        mode: result.mode,
         script: {
           id: script.id,
           name: script.name,
           version: script.version
         }
       };
+
+      // Convertir BigInts a String para serialización JSON
+      return convertBigIntToString(response);
     } catch (error) {
       // Actualizar registro de ejecución con error
       await prisma.executionLog.update({
@@ -205,7 +219,7 @@ class ExecutionService {
     ]);
 
     return {
-      executions,
+      executions: convertBigIntToString(executions),
       pagination: {
         total,
         page: parseInt(page),
@@ -255,7 +269,7 @@ class ExecutionService {
       throw new Error('Ejecución no encontrada o no tienes permisos para verla');
     }
 
-    return execution;
+    return convertBigIntToString(execution);
   }
 
   /**

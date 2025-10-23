@@ -2,10 +2,29 @@ export default function ExecutionOutputModal({ isOpen, onClose, execution }) {
   if (!isOpen || !execution) return null;
 
   const downloadLog = () => {
+    // Formatear fecha correctamente
+    const formatDate = (dateString) => {
+      if (!dateString) return 'N/A';
+      try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return 'N/A';
+        return date.toLocaleString('es-ES', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+      } catch {
+        return 'N/A';
+      }
+    };
+
     const content = `
 === EJECUCIÓN DE SCRIPT ===
 Script: ${execution.script?.name}
-Fecha: ${new Date(execution.startedAt).toLocaleString()}
+Fecha: ${formatDate(execution.startedAt)}
 Duración: ${execution.durationSeconds}s
 Exit Code: ${execution.exitCode}
 Éxito: ${execution.success ? 'Sí' : 'No'}
@@ -44,20 +63,28 @@ ${execution.stderr || 'Sin errores'}
           <div className="grid grid-cols-2 gap-4 mb-6">
             <div>
               <p className="text-sm text-gray-600">Script</p>
-              <p className="font-semibold">{execution.script?.name}</p>
+              <p className="font-semibold">{execution.script?.name || 'N/A'}</p>
             </div>
             <div>
               <p className="text-sm text-gray-600">Fecha</p>
-              <p className="font-semibold">{new Date(execution.startedAt).toLocaleString()}</p>
+              <p className="font-semibold">
+                {execution.startedAt 
+                  ? new Date(execution.startedAt).toLocaleString('es-ES')
+                  : 'N/A'}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-600">Duración</p>
-              <p className="font-semibold">{execution.durationSeconds}s</p>
+              <p className="font-semibold">
+                {typeof execution.durationSeconds === 'number' 
+                  ? `${execution.durationSeconds}s`
+                  : 'N/A'}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-600">Exit Code</p>
               <p className={`font-semibold ${execution.exitCode === 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {execution.exitCode}
+                {typeof execution.exitCode === 'number' ? execution.exitCode : 'N/A'}
               </p>
             </div>
             <div>

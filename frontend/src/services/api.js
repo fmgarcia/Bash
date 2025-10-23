@@ -92,7 +92,7 @@ export const scriptsAPI = {
   update: (id, scriptData) => api.put(`/scripts/${id}`, scriptData),
   delete: (id) => api.delete(`/scripts/${id}`),
   getVersions: (id) => api.get(`/scripts/${id}/versions`),
-  execute: (id, parameters) => api.post(`/scripts/${id}/execute`, { parameters }),
+  execute: (id, parameters, mode = 'visible') => api.post(`/scripts/${id}/execute`, { parameters, mode }),
   getStats: () => api.get('/scripts/stats')
 };
 

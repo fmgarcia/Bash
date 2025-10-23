@@ -130,11 +130,10 @@ class AuthService {
     const accessToken = this.generateAccessToken(user);
     const refreshToken = this.generateRefreshToken(user);
 
-    // Guardar refresh token en la base de datos
+    // Actualizar última fecha de login
     await prisma.user.update({
       where: { id: user.id },
       data: {
-        refreshToken,
         lastLoginAt: new Date()
       }
     });
@@ -142,7 +141,7 @@ class AuthService {
     logger.info(`Login exitoso: ${username} (ID: ${user.id})`);
 
     // No devolver información sensible
-    const { passwordHash, refreshToken: _, ...userWithoutPassword } = user;
+    const { passwordHash, ...userWithoutPassword } = user;
 
     return {
       accessToken,
@@ -161,7 +160,7 @@ class AuthService {
       // Verificar refresh token
       const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
 
-      // Buscar usuario y verificar que el refresh token coincida
+      // Buscar usuario
       const user = await prisma.user.findUnique({
         where: { id: decoded.userId },
         include: {
@@ -169,8 +168,8 @@ class AuthService {
         }
       });
 
-      if (!user || user.refreshToken !== refreshToken) {
-        throw new Error('Refresh token inválido');
+      if (!user) {
+        throw new Error('Usuario no encontrado');
       }
 
       if (!user.isActive) {
@@ -196,13 +195,8 @@ class AuthService {
    * @param {number} userId - ID del usuario
    */
   async logout(userId) {
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        refreshToken: null
-      }
-    });
-
+    // En esta versión, el refresh token se maneja solo en el cliente
+    // No es necesario actualizar la base de datos
     logger.info(`Logout exitoso para usuario ID: ${userId}`);
   }
 

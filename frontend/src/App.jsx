@@ -3,6 +3,7 @@ import { useAuth } from './hooks/useAuth';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import ScriptsList from './pages/ScriptsList';
+import ScriptsListDebug from './pages/ScriptsListDebug';
 import ScriptDetail from './pages/ScriptDetail';
 import ScriptForm from './pages/Admin/ScriptForm';
 import UsersList from './pages/Admin/UsersList';
@@ -54,6 +55,15 @@ function App() {
         element={
           <PrivateRoute>
             <ScriptsList />
+          </PrivateRoute>
+        }
+      />
+
+      <Route
+        path="/scripts-debug"
+        element={
+          <PrivateRoute>
+            <ScriptsListDebug />
           </PrivateRoute>
         }
       />

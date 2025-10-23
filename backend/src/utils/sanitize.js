@@ -28,7 +28,7 @@ function sanitizeString(input) {
  * @throws {Error} - Si la validación falla
  */
 function validateAndSanitizeParameters(parameters = {}, schema = {}) {
-  if (!schema || typeof schema !== 'object') {
+  if (!schema) {
     return {};
   }
 
@@ -42,6 +42,11 @@ function validateAndSanitizeParameters(parameters = {}, schema = {}) {
     } catch (error) {
       throw new Error('Schema de parámetros inválido');
     }
+  }
+
+  // Validar que parsedSchema sea un objeto
+  if (typeof parsedSchema !== 'object' || parsedSchema === null) {
+    return {};
   }
 
   // Validar cada parámetro del schema

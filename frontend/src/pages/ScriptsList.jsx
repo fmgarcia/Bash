@@ -7,7 +7,7 @@ import { scriptsAPI } from '../services/api';
 
 export default function ScriptsList() {
   const [scripts, setScripts] = useState([]);
-  const [filters, setFilters] = useState({ search: '', enabled: '', page: 1 });
+  const [filters, setFilters] = useState({ search: '', page: 1 });
   const [pagination, setPagination] = useState({});
   const [loading, setLoading] = useState(true);
   const { isAdmin } = useAuth();
@@ -18,7 +18,15 @@ export default function ScriptsList() {
 
   const loadScripts = async () => {
     try {
-      const response = await scriptsAPI.getAll(filters);
+      // Filtrar parámetros vacíos antes de enviar
+      const cleanFilters = Object.entries(filters).reduce((acc, [key, value]) => {
+        if (value !== '' && value !== null && value !== undefined) {
+          acc[key] = value;
+        }
+        return acc;
+      }, {});
+      
+      const response = await scriptsAPI.getAll(cleanFilters);
       setScripts(response.data.data);
       setPagination(response.data.pagination);
     } catch (error) {

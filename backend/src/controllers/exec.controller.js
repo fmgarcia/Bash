@@ -7,12 +7,13 @@ class ExecutionController {
   static async execute(req, res, next) {
     try {
       const { id } = req.params;
-      const { parameters } = req.body;
+      const { parameters, mode } = req.body;
 
       const result = await executionService.execute(
         id,
         parameters || {},
-        req.user.id
+        req.user.id,
+        mode || 'visible'
       );
 
       res.json({
