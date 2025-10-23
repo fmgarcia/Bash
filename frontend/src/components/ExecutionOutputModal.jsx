@@ -48,48 +48,48 @@ ${execution.stderr || 'Sin errores'}
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="p-6 border-b flex justify-between items-center">
-          <h2 className="text-2xl font-bold">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className="bg-white rounded-lg w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="p-4 sm:p-6 border-b flex justify-between items-center">
+          <h2 className="text-lg sm:text-2xl font-bold">
             Resultado de Ejecución #{execution.id}
           </h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl">
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl sm:text-3xl leading-none">
             ×
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto flex-1">
-          <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
             <div>
-              <p className="text-sm text-gray-600">Script</p>
-              <p className="font-semibold">{execution.script?.name || 'N/A'}</p>
+              <p className="text-xs sm:text-sm text-gray-600">Script</p>
+              <p className="font-semibold text-sm sm:text-base break-words">{execution.script?.name || 'N/A'}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Fecha</p>
-              <p className="font-semibold">
+              <p className="text-xs sm:text-sm text-gray-600">Fecha</p>
+              <p className="font-semibold text-sm sm:text-base">
                 {execution.startedAt 
                   ? new Date(execution.startedAt).toLocaleString('es-ES')
                   : 'N/A'}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Duración</p>
-              <p className="font-semibold">
+              <p className="text-xs sm:text-sm text-gray-600">Duración</p>
+              <p className="font-semibold text-sm sm:text-base">
                 {typeof execution.durationSeconds === 'number' 
                   ? `${execution.durationSeconds}s`
                   : 'N/A'}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Exit Code</p>
-              <p className={`font-semibold ${execution.exitCode === 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <p className="text-xs sm:text-sm text-gray-600">Exit Code</p>
+              <p className={`font-semibold text-sm sm:text-base ${execution.exitCode === 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {typeof execution.exitCode === 'number' ? execution.exitCode : 'N/A'}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Estado</p>
-              <span className={`px-3 py-1 rounded text-sm font-semibold ${
+              <p className="text-xs sm:text-sm text-gray-600">Estado</p>
+              <span className={`inline-block px-2 sm:px-3 py-1 rounded text-xs sm:text-sm font-semibold ${
                 execution.success 
                   ? 'bg-green-100 text-green-800' 
                   : 'bg-red-100 text-red-800'
@@ -100,30 +100,30 @@ ${execution.stderr || 'Sin errores'}
           </div>
 
           <div className="mb-4">
-            <h3 className="font-bold mb-2">Salida Estándar (stdout):</h3>
-            <pre className="bg-gray-100 p-4 rounded max-h-64 overflow-auto text-sm">
+            <h3 className="font-bold text-sm sm:text-base mb-2">Salida Estándar (stdout):</h3>
+            <pre className="bg-gray-100 p-3 sm:p-4 rounded max-h-48 sm:max-h-64 overflow-auto text-xs sm:text-sm">
               {execution.stdout || 'Sin salida'}
             </pre>
           </div>
 
           <div>
-            <h3 className="font-bold mb-2">Errores (stderr):</h3>
-            <pre className="bg-red-50 p-4 rounded max-h-64 overflow-auto text-sm">
+            <h3 className="font-bold text-sm sm:text-base mb-2">Errores (stderr):</h3>
+            <pre className="bg-red-50 p-3 sm:p-4 rounded max-h-48 sm:max-h-64 overflow-auto text-xs sm:text-sm">
               {execution.stderr || 'Sin errores'}
             </pre>
           </div>
         </div>
 
-        <div className="p-6 border-t flex justify-end space-x-4">
+        <div className="p-4 sm:p-6 border-t flex flex-col sm:flex-row justify-end gap-2 sm:gap-4">
           <button
             onClick={downloadLog}
-            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded"
+            className="w-full sm:w-auto px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-sm sm:text-base"
           >
             📥 Descargar Log
           </button>
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded"
+            className="w-full sm:w-auto px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded text-sm sm:text-base"
           >
             Cerrar
           </button>
