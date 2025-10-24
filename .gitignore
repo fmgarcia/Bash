@@ -42,6 +42,10 @@ backend/scripts/seed-*.js
 backend/scripts/create-*.js
 execution_*.txt
 
+# Archivos de debug
+frontend/public/debug.html
+**/debug.html
+
 # Sistema
 .DS_Store
 Thumbs.db
