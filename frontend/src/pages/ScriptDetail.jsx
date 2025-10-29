@@ -14,7 +14,7 @@ export default function ScriptDetail() {
   const [execution, setExecution] = useState(null);
   const [executing, setExecuting] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [executionMode, setExecutionMode] = useState('visible'); // 'visible' o 'headless'
+  const [executionMode, setExecutionMode] = useState('headless'); // 'visible' o 'headless'
 
   useEffect(() => {
     loadScript();

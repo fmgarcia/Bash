@@ -320,6 +320,71 @@ class ExecutionService {
   }
 
   /**
+   * Actualiza los comentarios de una ejecución
+   * @param {number} executionId - ID de la ejecución
+   * @param {string} comentarios - Comentarios a actualizar
+   * @param {object} user - Usuario que actualiza
+   * @returns {Promise<object>} - Ejecución actualizada
+   */
+  async updateComentarios(executionId, comentarios, user) {
+    // Obtener la ejecución
+    const execution = await prisma.executionLog.findUnique({
+      where: { id: BigInt(executionId) },
+      include: {
+        script: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
+    });
+
+    if (!execution) {
+      throw new Error('Ejecución no encontrada');
+    }
+
+    // Los usuarios normales solo pueden actualizar sus propias ejecuciones
+    if (user.roleName !== 'admin' && execution.executedBy !== user.id) {
+      throw new Error('No tienes permiso para actualizar esta ejecución');
+    }
+
+    // Actualizar comentarios
+    const updated = await prisma.executionLog.update({
+      where: { id: BigInt(executionId) },
+      data: {
+        comments: comentarios || null
+      },
+      include: {
+        script: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
+        executorUser: {
+          select: {
+            id: true,
+            username: true,
+            fullName: true
+          }
+        }
+      }
+    });
+
+    // Registrar en auditoría
+    await this.createAuditTrail('execution', executionId, 'UPDATE_COMMENTS', user.id, {
+      scriptId: updated.scriptId,
+      scriptName: updated.script.name,
+      comentariosLength: comentarios ? comentarios.length : 0
+    });
+
+    logger.info(`Comentarios actualizados en ejecución ${executionId} por usuario ${user.username}`);
+
+    return convertBigIntToString(updated);
+  }
+
+  /**
    * Crea un registro de auditoría
    * @param {string} entity - Entidad
    * @param {number} entityId - ID de la entidad

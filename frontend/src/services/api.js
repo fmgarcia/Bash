@@ -100,7 +100,8 @@ export const scriptsAPI = {
 export const executionsAPI = {
   getAll: (params) => api.get('/executions', { params }),
   getById: (id) => api.get(`/executions/${id}`),
-  getStats: (params) => api.get('/executions/stats', { params })
+  getStats: (params) => api.get('/executions/stats', { params }),
+  updateComentarios: (id, comentarios) => api.patch(`/executions/${id}/comentarios`, { comentarios })
 };
 
 // Audit

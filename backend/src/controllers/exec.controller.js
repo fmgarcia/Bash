@@ -13,7 +13,7 @@ class ExecutionController {
         id,
         parameters || {},
         req.user.id,
-        mode || 'visible'
+        mode || 'headless' // Por defecto en modo oculto
       );
 
       res.json({
@@ -69,6 +69,30 @@ class ExecutionController {
       res.json({
         success: true,
         data: stats
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Actualiza los comentarios de una ejecución
+   */
+  static async updateComentarios(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { comentarios } = req.body;
+
+      const execution = await executionService.updateComentarios(
+        id,
+        comentarios,
+        req.user
+      );
+
+      res.json({
+        success: true,
+        message: 'Comentarios actualizados correctamente',
+        data: execution
       });
     } catch (error) {
       next(error);

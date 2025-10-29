@@ -7,6 +7,7 @@ const logger = require('./utils/logger');
 const authRoutes = require('./routes/auth.routes');
 const usersRoutes = require('./routes/users.routes');
 const scriptsRoutes = require('./routes/scripts.routes');
+const executionsRoutes = require('./routes/executions.routes');
 const auditRoutes = require('./routes/audit.routes');
 
 const app = express();
@@ -39,6 +40,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/scripts', scriptsRoutes);
+app.use('/api/executions', executionsRoutes);
 app.use('/api', auditRoutes);
 
 // Middleware para rutas no encontradas
