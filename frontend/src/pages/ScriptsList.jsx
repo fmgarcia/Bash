@@ -3,13 +3,17 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import Header from '../components/Header';
 import SearchBar from '../components/SearchBar';
+import ScriptListsModal from '../components/ScriptListsModal';
 import { scriptsAPI } from '../services/api';
+import { FaHeart } from 'react-icons/fa';
 
 export default function ScriptsList() {
   const [scripts, setScripts] = useState([]);
-  const [filters, setFilters] = useState({ search: '', page: 1 });
+  const [filters, setFilters] = useState({ search: '', page: 1, interpreter: '' });
   const [pagination, setPagination] = useState({});
   const [loading, setLoading] = useState(true);
+  const [selectedScript, setSelectedScript] = useState(null);
+  const [showListsModal, setShowListsModal] = useState(false);
   const { isAdmin } = useAuth();
 
   useEffect(() => {
@@ -51,6 +55,20 @@ export default function ScriptsList() {
     }
   };
 
+  const openListsModal = (script) => {
+    setSelectedScript(script);
+    setShowListsModal(true);
+  };
+
+  const closeListsModal = (saved) => {
+    setShowListsModal(false);
+    setSelectedScript(null);
+    if (saved) {
+      // Recargar scripts para actualizar los iconos de corazón
+      loadScripts();
+    }
+  };
+
   return (
     <>
       <Header />
@@ -67,8 +85,25 @@ export default function ScriptsList() {
           )}
         </div>
 
-        <div className="mb-6">
+        <div className="mb-6 space-y-4">
           <SearchBar onSearch={handleSearch} placeholder="Buscar por nombre, descripción o tags..." />
+          
+          {/* Filtro por intérprete */}
+          <div className="flex items-center gap-4">
+            <label className="font-medium text-gray-700">Intérprete:</label>
+            <select
+              value={filters.interpreter}
+              onChange={(e) => setFilters({ ...filters, interpreter: e.target.value, page: 1 })}
+              className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">Todos</option>
+              <option value="powershell">PowerShell</option>
+              <option value="bash">Bash</option>
+              <option value="python">Python</option>
+              <option value="javascript">JavaScript</option>
+              <option value="cmd">CMD</option>
+            </select>
+          </div>
         </div>
 
         {loading ? (
@@ -85,11 +120,28 @@ export default function ScriptsList() {
                   <div className="p-6">
                     <div className="flex justify-between items-start mb-3">
                       <h3 className="text-xl font-bold">{script.name}</h3>
-                      {!script.isEnabled && (
-                        <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded">
-                          Deshabilitado
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => openListsModal(script)}
+                          className={`transition-colors p-1 ${
+                            script.scriptListItems && script.scriptListItems.length > 0
+                              ? 'text-red-500 hover:text-red-600'
+                              : 'text-gray-400 hover:text-red-500'
+                          }`}
+                          title={
+                            script.scriptListItems && script.scriptListItems.length > 0
+                              ? `En ${script.scriptListItems.length} lista(s)`
+                              : 'Añadir a listas'
+                          }
+                        >
+                          <FaHeart size={20} />
+                        </button>
+                        {!script.isEnabled && (
+                          <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded">
+                            Deshabilitado
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <p className="text-gray-600 text-sm mb-4 line-clamp-3">
@@ -110,6 +162,7 @@ export default function ScriptsList() {
                     )}
 
                     <div className="text-sm text-gray-500 mb-4">
+                      <p>Intérprete: <span className="font-medium">{script.interpreter}</span></p>
                       <p>Version: {script.version}</p>
                       <p>Ejecuciones: {script.executionCount}</p>
                     </div>
@@ -164,6 +217,16 @@ export default function ScriptsList() {
           </>
         )}
       </main>
+
+      {/* Modal de listas */}
+      {selectedScript && (
+        <ScriptListsModal
+          isOpen={showListsModal}
+          onClose={closeListsModal}
+          scriptId={selectedScript.id}
+          scriptName={selectedScript.name}
+        />
+      )}
     </>
   );
 }

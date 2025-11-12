@@ -5,8 +5,11 @@ import Dashboard from './pages/Dashboard';
 import ScriptsList from './pages/ScriptsList';
 import ScriptsListDebug from './pages/ScriptsListDebug';
 import ScriptDetail from './pages/ScriptDetail';
+import MyLists from './pages/MyLists';
+import ListDetail from './pages/ListDetail';
 import ScriptForm from './pages/Admin/ScriptForm';
 import UsersList from './pages/Admin/UsersList';
+import ManageUsers from './pages/ManageUsers';
 
 function PrivateRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -34,6 +37,20 @@ function AdminRoute({ children }) {
   }
 
   return isAdmin() ? children : <Navigate to="/dashboard" />;
+}
+
+function EmpresaRoute({ children }) {
+  const { isEmpresa, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-xl">Cargando...</div>
+      </div>
+    );
+  }
+
+  return isEmpresa() ? children : <Navigate to="/dashboard" />;
 }
 
 function App() {
@@ -78,6 +95,24 @@ function App() {
       />
 
       <Route
+        path="/my-lists"
+        element={
+          <PrivateRoute>
+            <MyLists />
+          </PrivateRoute>
+        }
+      />
+
+      <Route
+        path="/my-lists/:id"
+        element={
+          <PrivateRoute>
+            <ListDetail />
+          </PrivateRoute>
+        }
+      />
+
+      <Route
         path="/admin/scripts/new"
         element={
           <AdminRoute>
@@ -101,6 +136,15 @@ function App() {
           <AdminRoute>
             <UsersList />
           </AdminRoute>
+        }
+      />
+
+      <Route
+        path="/empresa/users"
+        element={
+          <EmpresaRoute>
+            <ManageUsers />
+          </EmpresaRoute>
         }
       />
 

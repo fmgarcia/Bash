@@ -39,7 +39,7 @@ class ScriptsController {
    */
   static async create(req, res, next) {
     try {
-      const script = await scriptService.create(req.body, req.user.id);
+      const script = await scriptService.create(req.body, req.user.id, req.user);
 
       res.status(201).json({
         success: true,
@@ -56,7 +56,7 @@ class ScriptsController {
    */
   static async update(req, res, next) {
     try {
-      const script = await scriptService.update(req.params.id, req.body, req.user.id);
+      const script = await scriptService.update(req.params.id, req.body, req.user.id, req.user);
 
       res.json({
         success: true,
@@ -73,7 +73,7 @@ class ScriptsController {
    */
   static async delete(req, res, next) {
     try {
-      await scriptService.delete(req.params.id, req.user.id);
+      await scriptService.delete(req.params.id, req.user.id, req.user);
 
       res.json({
         success: true,

@@ -36,6 +36,11 @@ const requireRole = (...allowedRoles) => {
 const requireAdmin = requireRole('admin');
 
 /**
+ * Middleware que permite admin o empresa
+ */
+const requireAdminOrEmpresa = requireRole('admin', 'empresa');
+
+/**
  * Middleware que permite admin y user
  */
 const requireAuthenticated = requireRole('admin', 'user');
@@ -43,5 +48,6 @@ const requireAuthenticated = requireRole('admin', 'user');
 module.exports = {
   requireRole,
   requireAdmin,
+  requireAdminOrEmpresa,
   requireAuthenticated
 };

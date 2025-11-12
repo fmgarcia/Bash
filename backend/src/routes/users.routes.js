@@ -1,18 +1,21 @@
 const express = require('express');
 const UsersController = require('../controllers/users.controller');
 const authMiddleware = require('../middlewares/auth.middleware');
-const { requireAdmin } = require('../middlewares/role.middleware');
+const { requireAdmin, requireAdminOrEmpresa } = require('../middlewares/role.middleware');
 
 const router = express.Router();
 
-// Todas las rutas requieren autenticación y rol admin
-router.use(authMiddleware, requireAdmin);
+// Todas las rutas requieren autenticación
+router.use(authMiddleware);
 
-router.get('/', UsersController.getAll);
-router.get('/stats', UsersController.getStats);
-router.get('/:id', UsersController.getById);
-router.post('/', UsersController.create);
-router.put('/:id', UsersController.update);
-router.delete('/:id', UsersController.delete);
+// Rutas que permiten admin o empresa
+router.get('/', requireAdminOrEmpresa, UsersController.getAll);
+router.get('/:id', requireAdminOrEmpresa, UsersController.getById);
+router.post('/', requireAdminOrEmpresa, UsersController.create);
+router.put('/:id', requireAdminOrEmpresa, UsersController.update);
+router.delete('/:id', requireAdminOrEmpresa, UsersController.delete);
+
+// Ruta solo para admin
+router.get('/stats', requireAdmin, UsersController.getStats);
 
 module.exports = router;

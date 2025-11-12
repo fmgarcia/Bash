@@ -6,7 +6,7 @@ class UsersController {
    */
   static async getAll(req, res, next) {
     try {
-      const result = await userService.getAll(req.query);
+      const result = await userService.getAll(req.query, req.user);
 
       res.json({
         success: true,
@@ -23,7 +23,7 @@ class UsersController {
    */
   static async getById(req, res, next) {
     try {
-      const user = await userService.getById(req.params.id);
+      const user = await userService.getById(req.params.id, req.user);
 
       res.json({
         success: true,
@@ -39,7 +39,7 @@ class UsersController {
    */
   static async create(req, res, next) {
     try {
-      const user = await userService.create(req.body);
+      const user = await userService.create(req.body, req.user);
 
       res.status(201).json({
         success: true,
@@ -56,7 +56,7 @@ class UsersController {
    */
   static async update(req, res, next) {
     try {
-      const user = await userService.update(req.params.id, req.body);
+      const user = await userService.update(req.params.id, req.body, req.user);
 
       res.json({
         success: true,
@@ -73,7 +73,7 @@ class UsersController {
    */
   static async delete(req, res, next) {
     try {
-      await userService.delete(req.params.id);
+      await userService.delete(req.params.id, req.user);
 
       res.json({
         success: true,

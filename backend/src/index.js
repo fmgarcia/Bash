@@ -5,6 +5,7 @@ const PowerShellHelper = require('./utils/powershell-helper');
 
 const PORT = process.env.PORT || 4000;
 
+
 // Validar variables de entorno requeridas
 const requiredEnvVars = ['DATABASE_URL', 'JWT_SECRET', 'JWT_REFRESH_SECRET'];
 const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);

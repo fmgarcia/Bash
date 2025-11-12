@@ -49,6 +49,14 @@ export const AuthProvider = ({ children }) => {
     return user?.role?.name === 'admin';
   };
 
+  const isEmpresa = () => {
+    return user?.role?.name === 'empresa';
+  };
+
+  const isAdminOrEmpresa = () => {
+    return user?.role?.name === 'admin' || user?.role?.name === 'empresa';
+  };
+
   const isAuthenticated = () => {
     return !!user;
   };
@@ -59,6 +67,8 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     isAdmin,
+    isEmpresa,
+    isAdminOrEmpresa,
     isAuthenticated
   };
 

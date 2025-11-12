@@ -109,4 +109,17 @@ export const auditAPI = {
   getTrail: (params) => api.get('/audit', { params })
 };
 
+// Script Lists
+export const scriptListsAPI = {
+  getAll: () => api.get('/script-lists'),
+  getById: (id) => api.get(`/script-lists/${id}`),
+  create: (listData) => api.post('/script-lists', listData),
+  update: (id, listData) => api.patch(`/script-lists/${id}`, listData),
+  delete: (id) => api.delete(`/script-lists/${id}`),
+  addScript: (listId, scriptId, notes) => api.post(`/script-lists/${listId}/scripts`, { scriptId, notes }),
+  removeScript: (listId, scriptId) => api.delete(`/script-lists/${listId}/scripts/${scriptId}`),
+  getScriptLists: (scriptId) => api.get(`/script-lists/scripts/${scriptId}/lists`),
+  updateScriptLists: (scriptId, listIds) => api.put(`/script-lists/scripts/${scriptId}/lists`, { listIds })
+};
+
 export default api;

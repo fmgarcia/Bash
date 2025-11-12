@@ -16,8 +16,13 @@ class ScriptService {
 
     const where = {};
 
+    // Si es empresa, solo ve scripts de su compañía
+    if (user.role && user.role.name === 'empresa') {
+      where.companyId = user.id;
+    }
+
     // Los usuarios normales solo ven scripts habilitados
-    if (user.roleName !== 'admin') {
+    if (user.roleName !== 'admin' && (!user.role || user.role.name !== 'empresa')) {
       where.isEnabled = true;
     } else if (enabled !== undefined) {
       where.isEnabled = enabled === 'true' || enabled === true;
@@ -59,6 +64,16 @@ class ScriptService {
               username: true,
               fullName: true
             }
+          },
+          scriptListItems: {
+            where: {
+              list: {
+                userId: user.id
+              }
+            },
+            select: {
+              listId: true
+            }
           }
         },
         skip,
@@ -88,8 +103,13 @@ class ScriptService {
   async getById(id, user) {
     const where = { id: parseInt(id) };
 
+    // Si es empresa, solo ve scripts de su compañía
+    if (user.role && user.role.name === 'empresa') {
+      where.companyId = user.id;
+    }
+
     // Los usuarios normales solo ven scripts habilitados
-    if (user.roleName !== 'admin') {
+    if (user.roleName !== 'admin' && (!user.role || user.role.name !== 'empresa')) {
       where.isEnabled = true;
     }
 
@@ -134,12 +154,13 @@ class ScriptService {
   }
 
   /**
-   * Crea un nuevo script (solo admin)
+   * Crea un nuevo script
    * @param {object} scriptData - Datos del script
    * @param {number} userId - ID del usuario creador
+   * @param {object} requestUser - Usuario que hace la petición
    * @returns {Promise<object>} - Script creado
    */
-  async create(scriptData, userId) {
+  async create(scriptData, userId, requestUser) {
     const {
       name,
       description,
@@ -150,6 +171,12 @@ class ScriptService {
       tags,
       isEnabled = true
     } = scriptData;
+
+    // Si es empresa, establecer companyId
+    let companyId = null;
+    if (requestUser && requestUser.roleName === 'empresa') {
+      companyId = requestUser.id;
+    }
 
     // Validar parametersSchema si se proporciona
     let parsedSchema = null;
@@ -176,7 +203,8 @@ class ScriptService {
         isEnabled,
         createdBy: userId,
         updatedBy: userId,
-        version: 1
+        version: 1,
+        companyId
       },
       include: {
         creatorUser: {
@@ -212,13 +240,14 @@ class ScriptService {
   }
 
   /**
-   * Actualiza un script (solo admin)
+   * Actualiza un script (admin o empresa)
    * @param {number} id - ID del script
    * @param {object} scriptData - Datos a actualizar
    * @param {number} userId - ID del usuario que actualiza
+   * @param {object} requestUser - Usuario que hace la petición
    * @returns {Promise<object>} - Script actualizado
    */
-  async update(id, scriptData, userId) {
+  async update(id, scriptData, userId, requestUser) {
     const {
       name,
       description,
@@ -237,6 +266,13 @@ class ScriptService {
 
     if (!existingScript) {
       throw new Error('Script no encontrado');
+    }
+
+    // Si es empresa, verificar que el script pertenece a su compañía
+    if (requestUser && requestUser.roleName === 'empresa') {
+      if (existingScript.companyId !== requestUser.id) {
+        throw new Error('No tienes permisos para modificar este script');
+      }
     }
 
     const updateData = {
@@ -320,11 +356,12 @@ class ScriptService {
   }
 
   /**
-   * Elimina un script (solo admin)
+   * Elimina un script (admin o empresa)
    * @param {number} id - ID del script
    * @param {number} userId - ID del usuario que elimina
+   * @param {object} requestUser - Usuario que hace la petición
    */
-  async delete(id, userId) {
+  async delete(id, userId, requestUser) {
     // Verificar que el script existe
     const script = await prisma.script.findUnique({
       where: { id: parseInt(id) }
@@ -332,6 +369,13 @@ class ScriptService {
 
     if (!script) {
       throw new Error('Script no encontrado');
+    }
+
+    // Si es empresa, verificar que el script pertenece a su compañía
+    if (requestUser && requestUser.roleName === 'empresa') {
+      if (script.companyId !== requestUser.id) {
+        throw new Error('No tienes permisos para eliminar este script');
+      }
     }
 
     // Registrar en auditoría antes de eliminar

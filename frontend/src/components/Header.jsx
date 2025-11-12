@@ -1,9 +1,12 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useTranslation } from 'react-i18next';
+import LanguageSelector from './LanguageSelector';
 
 export default function Header() {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isAdmin, isEmpresa } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleLogout = async () => {
     await logout();
@@ -20,24 +23,33 @@ export default function Header() {
 
           <div className="flex items-center space-x-6">
             <Link to="/dashboard" className="hover:underline">
-              Dashboard
+              {t('header.dashboard')}
             </Link>
             <Link to="/scripts" className="hover:underline">
-              Scripts
+              {t('header.scripts')}
+            </Link>
+            <Link to="/my-lists" className="hover:underline">
+              {t('header.myLists')}
             </Link>
             {isAdmin() && (
               <>
                 <Link to="/admin/scripts/new" className="hover:underline">
-                  Nuevo Script
+                  {t('scripts.newScript')}
                 </Link>
                 <Link to="/admin/users" className="hover:underline">
-                  Usuarios
+                  {t('header.users')}
                 </Link>
               </>
+            )}
+            {isEmpresa() && (
+              <Link to="/empresa/users" className="hover:underline">
+                {t('header.myUsers')}
+              </Link>
             )}
           </div>
 
           <div className="flex items-center space-x-4">
+            <LanguageSelector />
             <span className="text-sm">
               {user?.fullName || user?.username}
               <span className="ml-2 text-xs bg-blue-800 px-2 py-1 rounded">
@@ -48,7 +60,7 @@ export default function Header() {
               onClick={handleLogout}
               className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded"
             >
-              Cerrar Sesión
+              {t('header.logout')}
             </button>
           </div>
         </div>

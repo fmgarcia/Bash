@@ -1,0 +1,167 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "yes": "Sí",
+    "no": "No",
+    "actions": "Acciones",
+    "back": "Volver",
+    "close": "Cerrar",
+    "confirm": "Confirmar",
+    "required": "Obligatorio"
+  },
+  "header": {
+    "dashboard": "Dashboard",
+    "scripts": "Scripts",
+    "myLists": "Mis Listas",
+    "executions": "Ejecuciones",
+    "users": "Usuarios",
+    "myUsers": "Mis Usuarios",
+    "logout": "Cerrar Sesión",
+    "welcome": "Bienvenido"
+  },
+  "login": {
+    "title": "Iniciar Sesión",
+    "username": "Usuario",
+    "password": "Contraseña",
+    "loginButton": "Iniciar Sesión",
+    "rememberMe": "Recordarme",
+    "recentUsers": "Usuarios recientes",
+    "errors": {
+      "required": "Usuario y contraseña son obligatorios",
+      "failed": "Error al iniciar sesión"
+    }
+  },
+  "dashboard": {
+    "title": "Panel de Control",
+    "welcome": "Bienvenido de nuevo",
+    "stats": {
+      "totalScripts": "Scripts Totales",
+      "activeScripts": "Scripts Activos",
+      "totalExecutions": "Ejecuciones Totales",
+      "successRate": "Tasa de Éxito"
+    },
+    "recentScripts": "Scripts Recientes",
+    "recentExecutions": "Ejecuciones Recientes",
+    "noScripts": "No hay scripts disponibles",
+    "noExecutions": "No hay ejecuciones recientes"
+  },
+  "scripts": {
+    "title": "Gestión de Scripts",
+    "newScript": "Nuevo Script",
+    "editScript": "Editar Script",
+    "deleteScript": "Eliminar Script",
+    "executeScript": "Ejecutar Script",
+    "viewDetails": "Ver Detalles",
+    "addToList": "Añadir a Lista",
+    "noScripts": "No hay scripts registrados",
+    "createFirst": "Crea tu primer script para comenzar",
+    "fields": {
+      "name": "Nombre",
+      "description": "Descripción",
+      "interpreter": "Intérprete",
+      "body": "Código",
+      "tags": "Etiquetas",
+      "enabled": "Habilitado",
+      "createdAt": "Fecha de Creación",
+      "lastExecuted": "Última Ejecución",
+      "executionCount": "Nº Ejecuciones"
+    },
+    "filters": {
+      "all": "Todos",
+      "interpreter": "Filtrar por intérprete",
+      "searchPlaceholder": "Buscar scripts..."
+    }
+  },
+  "lists": {
+    "title": "Mis Listas",
+    "newList": "Nueva Lista",
+    "editList": "Editar Lista",
+    "deleteList": "Eliminar Lista",
+    "addScripts": "Añadir Scripts",
+    "noLists": "No hay listas creadas",
+    "createFirst": "Crea tu primera lista para organizar tus scripts",
+    "fields": {
+      "name": "Nombre",
+      "description": "Descripción",
+      "color": "Color",
+      "icon": "Icono",
+      "scriptsCount": "Nº Scripts"
+    },
+    "favorites": "Favoritos",
+    "selectList": "Seleccionar lista",
+    "addToList": "Añadir a lista",
+    "removeFromList": "Quitar de la lista"
+  },
+  "executions": {
+    "title": "Historial de Ejecuciones",
+    "viewDetails": "Ver Detalles",
+    "noExecutions": "No hay ejecuciones registradas",
+    "executeFirst": "Ejecuta un script para ver su historial",
+    "fields": {
+      "script": "Script",
+      "executedBy": "Ejecutado por",
+      "startedAt": "Inicio",
+      "duration": "Duración",
+      "exitCode": "Código de Salida",
+      "status": "Estado",
+      "success": "Exitoso",
+      "failed": "Fallido"
+    },
+    "details": {
+      "title": "Detalles de Ejecución",
+      "stdout": "Salida Estándar",
+      "stderr": "Salida de Error",
+      "context": "Contexto de Ejecución",
+      "comments": "Comentarios"
+    }
+  },
+  "users": {
+    "title": "Gestión de Usuarios",
+    "myUsers": "Mis Usuarios",
+    "newUser": "Nuevo Usuario",
+    "editUser": "Editar Usuario",
+    "deleteUser": "Eliminar Usuario",
+    "noUsers": "No hay usuarios registrados",
+    "createFirst": "Crea tu primer usuario para comenzar",
+    "fields": {
+      "username": "Usuario",
+      "email": "Email",
+      "password": "Contraseña",
+      "fullName": "Nombre Completo",
+      "role": "Rol",
+      "isActive": "Usuario activo",
+      "createdAt": "Fecha de Creación",
+      "lastLogin": "Último Acceso"
+    },
+    "roles": {
+      "admin": "Administrador",
+      "empresa": "Empresa",
+      "user": "Usuario"
+    },
+    "confirmDelete": "¿Estás seguro de que quieres eliminar este usuario?",
+    "passwordNote": "(dejar en blanco para no cambiar)"
+  },
+  "errors": {
+    "generic": "Ha ocurrido un error",
+    "notFound": "No encontrado",
+    "unauthorized": "No autorizado",
+    "forbidden": "Acceso denegado",
+    "serverError": "Error del servidor",
+    "networkError": "Error de conexión"
+  },
+  "success": {
+    "created": "Creado exitosamente",
+    "updated": "Actualizado exitosamente",
+    "deleted": "Eliminado exitosamente",
+    "saved": "Guardado exitosamente"
+  }
+}

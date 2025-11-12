@@ -3,19 +3,28 @@ const { PrismaClient } = require('@prisma/client');
 const logger = require('../utils/logger');
 
 const prisma = new PrismaClient();
+
 const SALT_ROUNDS = 12;
+
 
 class UserService {
   /**
-   * Obtiene todos los usuarios (solo admin)
+   * Obtiene todos los usuarios (admin ve todos, empresa ve solo sus usuarios)
    * @param {object} filters - Filtros opcionales
+   * @param {object} requestUser - Usuario que hace la petición
    * @returns {Promise<Array>} - Lista de usuarios
    */
-  async getAll(filters = {}) {
-    const { page = 1, limit = 20, search, roleId, isActive } = filters;
-    const skip = (page - 1) * limit;
+  async getAll(filters = {}, requestUser) {
+    const { page = 1, limit = 10, search, roleId, isActive } = filters;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const where = {};
+
+    // Si es empresa, solo ver sus usuarios
+    if (requestUser.roleName === 'empresa') {
+      where.companyId = requestUser.id;
+      logger.info(`[UserService.getAll] Empresa ${requestUser.id} buscando usuarios con companyId=${requestUser.id}`);
+    }
 
     if (search) {
       where.OR = [
@@ -48,9 +57,11 @@ class UserService {
 
     // Eliminar información sensible
     const usersWithoutPasswords = users.map(user => {
-      const { passwordHash, refreshToken, ...userWithoutPassword } = user;
+      const { passwordHash, ...userWithoutPassword } = user;
       return userWithoutPassword;
     });
+
+    logger.info(`[UserService.getAll] Encontrados ${total} usuarios. Filtro: ${JSON.stringify(where)}`);
 
     return {
       users: usersWithoutPasswords,
@@ -66,9 +77,10 @@ class UserService {
   /**
    * Obtiene un usuario por ID
    * @param {number} id - ID del usuario
+   * @param {object} requestUser - Usuario que hace la petición
    * @returns {Promise<object>} - Usuario
    */
-  async getById(id) {
+  async getById(id, requestUser) {
     const user = await prisma.user.findUnique({
       where: { id: parseInt(id) },
       include: {
@@ -80,16 +92,24 @@ class UserService {
       throw new Error('Usuario no encontrado');
     }
 
-    const { passwordHash, refreshToken, ...userWithoutPassword } = user;
+    // Si es empresa, verificar que el usuario pertenece a su compañía
+    if (requestUser && requestUser.roleName === 'empresa') {
+      if (user.companyId !== requestUser.id && user.id !== requestUser.id) {
+        throw new Error('No tienes permisos para ver este usuario');
+      }
+    }
+
+    const { passwordHash, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }
 
   /**
-   * Crea un nuevo usuario (solo admin)
+   * Crea un nuevo usuario (admin o empresa)
    * @param {object} userData - Datos del usuario
+   * @param {object} requestUser - Usuario que hace la petición
    * @returns {Promise<object>} - Usuario creado
    */
-  async create(userData) {
+  async create(userData, requestUser) {
     const { username, email, password, fullName, roleId, isActive } = userData;
 
     // Validar que el username no exista
@@ -101,57 +121,108 @@ class UserService {
       throw new Error('El nombre de usuario ya existe');
     }
 
-    // Validar email si se proporciona
-    if (email) {
-      const existingEmail = await prisma.user.findUnique({
-        where: { email }
-      });
+    // Validar que el email sea proporcionado
+    if (!email || !email.trim()) {
+      throw new Error('El email es obligatorio');
+    }
 
-      if (existingEmail) {
-        throw new Error('El email ya está registrado');
+    // Validar que el email no exista
+    const existingEmail = await prisma.user.findUnique({
+      where: { email }
+    });
+
+    if (existingEmail) {
+      throw new Error('El email ya está registrado');
+    }
+
+    // Si es empresa creando usuario, validar restricciones
+    let finalRoleId = roleId || 2;
+    let companyId = null;
+
+    if (requestUser && requestUser.roleName === 'empresa') {
+      // Empresa no puede crear admin ni empresa
+      const role = await prisma.role.findUnique({ where: { id: finalRoleId } });
+      if (role && (role.name === 'admin' || role.name === 'empresa')) {
+        throw new Error('No tienes permisos para crear usuarios con este rol');
       }
+      // El usuario creado pertenece a la empresa
+      companyId = requestUser.id;
+      logger.info(`[UserService.create] Empresa ${requestUser.id} (${requestUser.username}) creando usuario con companyId=${companyId}`);
     }
 
     // Hash de la contraseña
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
-    // Crear usuario
-    const user = await prisma.user.create({
-      data: {
-        username,
-        email,
-        passwordHash,
-        fullName,
-        roleId: roleId || 2,
-        isActive: isActive !== undefined ? isActive : true
-      },
-      include: {
-        role: true
-      }
+    // Crear usuario con su lista de Favoritos
+    const user = await prisma.$transaction(async (tx) => {
+      const newUser = await tx.user.create({
+        data: {
+          username,
+          email,
+          passwordHash,
+          fullName,
+          roleId: finalRoleId,
+          isActive: isActive !== undefined ? isActive : true,
+          companyId
+        },
+        include: {
+          role: true
+        }
+      });
+
+      // Crear lista de Favoritos por defecto
+      await tx.scriptList.create({
+        data: {
+          name: 'Favoritos',
+          description: 'Scripts marcados como favoritos',
+          userId: newUser.id,
+          isDefault: true,
+          color: '#FFD700',
+          icon: 'heart'
+        }
+      });
+
+      return newUser;
     });
 
     logger.info(`Usuario creado: ${username} (ID: ${user.id})`);
 
-    const { passwordHash: _, refreshToken, ...userWithoutPassword } = user;
+    const { passwordHash: _, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }
 
   /**
-   * Actualiza un usuario (solo admin)
+   * Actualiza un usuario (admin o empresa)
    * @param {number} id - ID del usuario
    * @param {object} userData - Datos a actualizar
+   * @param {object} requestUser - Usuario que hace la petición
    * @returns {Promise<object>} - Usuario actualizado
    */
-  async update(id, userData) {
+  async update(id, userData, requestUser) {
     const { username, email, password, fullName, roleId, isActive } = userData;
 
     // Verificar que el usuario existe
     const existingUser = await prisma.user.findUnique({
-      where: { id: parseInt(id) }
+      where: { id: parseInt(id) },
+      include: { role: true }
     });
 
     if (!existingUser) {
       throw new Error('Usuario no encontrado');
+    }
+
+    // Si es empresa, verificar que el usuario pertenece a su compañía
+    if (requestUser && requestUser.roleName === 'empresa') {
+      if (existingUser.companyId !== requestUser.id) {
+        throw new Error('No tienes permisos para modificar este usuario');
+      }
+      // Empresa no puede cambiar rol a admin o empresa
+      if (roleId) {
+        const newRole = await prisma.role.findUnique({ where: { id: roleId } });
+        if (newRole && (newRole.name === 'admin' || newRole.name === 'empresa')) {
+          throw new Error('No tienes permisos para asignar este rol');
+        }
+      }
     }
 
     const updateData = {};
@@ -186,8 +257,6 @@ class UserService {
     // Hash de la nueva contraseña si se proporciona
     if (password) {
       updateData.passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
-      // Invalidar refresh token al cambiar contraseña
-      updateData.refreshToken = null;
     }
 
     if (fullName !== undefined) updateData.fullName = fullName;
@@ -205,15 +274,16 @@ class UserService {
 
     logger.info(`Usuario actualizado: ${user.username} (ID: ${user.id})`);
 
-    const { passwordHash, refreshToken, ...userWithoutPassword } = user;
+    const { passwordHash, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }
 
   /**
-   * Elimina un usuario (solo admin)
+   * Elimina un usuario (admin o empresa)
    * @param {number} id - ID del usuario
+   * @param {object} requestUser - Usuario que hace la petición
    */
-  async delete(id) {
+  async delete(id, requestUser) {
     // Verificar que el usuario existe
     const user = await prisma.user.findUnique({
       where: { id: parseInt(id) }
@@ -221,6 +291,13 @@ class UserService {
 
     if (!user) {
       throw new Error('Usuario no encontrado');
+    }
+
+    // Si es empresa, verificar que el usuario pertenece a su compañía
+    if (requestUser && requestUser.roleName === 'empresa') {
+      if (user.companyId !== requestUser.id) {
+        throw new Error('No tienes permisos para eliminar este usuario');
+      }
     }
 
     // Eliminar usuario
