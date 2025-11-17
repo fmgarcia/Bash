@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const { errorMiddleware, notFoundMiddleware } = require('./middlewares/error.middleware');
 const logger = require('./utils/logger');
 
@@ -50,7 +51,21 @@ app.use('/api/executions', executionsRoutes);
 app.use('/api/script-lists', scriptListRoutes);
 app.use('/api', auditRoutes);
 
-// Middleware para rutas no encontradas
+// Servir archivos estáticos del frontend en producción
+if (process.env.NODE_ENV === 'production') {
+  const frontendPath = path.join(__dirname, '..', 'public');
+  app.use(express.static(frontendPath));
+  
+  // Todas las rutas no API devuelven index.html (SPA routing)
+  app.get('*', (req, res) => {
+    // Solo si no es una ruta de API
+    if (!req.path.startsWith('/api')) {
+      res.sendFile(path.join(frontendPath, 'index.html'));
+    }
+  });
+}
+
+// Middleware para rutas no encontradas (solo API en producción)
 app.use(notFoundMiddleware);
 
 // Middleware global de manejo de errores
