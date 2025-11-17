@@ -17,12 +17,12 @@ class ScriptService {
     const where = {};
 
     // Si es empresa, solo ve scripts de su compañía
-    if (user.role && user.role.name === 'empresa') {
+    if (user.roleName === 'empresa') {
       where.companyId = user.id;
     }
 
     // Los usuarios normales solo ven scripts habilitados
-    if (user.roleName !== 'admin' && (!user.role || user.role.name !== 'empresa')) {
+    if (user.roleName !== 'admin' && user.roleName !== 'empresa') {
       where.isEnabled = true;
     } else if (enabled !== undefined) {
       where.isEnabled = enabled === 'true' || enabled === true;
@@ -104,12 +104,12 @@ class ScriptService {
     const where = { id: parseInt(id) };
 
     // Si es empresa, solo ve scripts de su compañía
-    if (user.role && user.role.name === 'empresa') {
+    if (user.roleName === 'empresa') {
       where.companyId = user.id;
     }
 
     // Los usuarios normales solo ven scripts habilitados
-    if (user.roleName !== 'admin' && (!user.role || user.role.name !== 'empresa')) {
+    if (user.roleName !== 'admin' && user.roleName !== 'empresa') {
       where.isEnabled = true;
     }
 
