@@ -45,9 +45,9 @@ async function resetAdminPassword() {
         data: {
           username: 'admin',
           email: 'admin@gestion-scripts.com',
-          password: hashedPassword,
+          passwordHash: hashedPassword,
           roleId: 1,
-          active: true
+          isActive: true
         },
         include: {
           role: true
@@ -67,8 +67,8 @@ async function resetAdminPassword() {
       await prisma.user.update({
         where: { id: adminUser.id },
         data: { 
-          password: hashedPassword,
-          active: true // Asegurarse de que esté activo
+          passwordHash: hashedPassword,
+          isActive: true // Asegurarse de que esté activo
         }
       });
 
