@@ -4,7 +4,7 @@
 FROM node:18-alpine AS frontend-build
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
-RUN npm ci
+RUN npm install
 COPY frontend/ ./
 RUN npm run build
 
@@ -25,7 +25,7 @@ RUN curl -L https://github.com/PowerShell/PowerShell/releases/download/v7.4.0/po
 
 # Copiar archivos del backend
 COPY backend/package*.json ./
-RUN npm ci --only=production
+RUN npm install --only=production
 
 # Copiar código del backend
 COPY backend/ ./
