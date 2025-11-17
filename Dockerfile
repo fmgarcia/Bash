@@ -39,8 +39,16 @@ RUN npx prisma generate
 # Crear directorio temporal para scripts
 RUN mkdir -p /app/tmp
 
+# Copiar script de inicio
+COPY backend/startup.sh /app/startup.sh
+RUN chmod +x /app/startup.sh
+
 # Exponer puerto
 EXPOSE 4000
+
+# Health check para verificar que el servidor está respondiendo
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:4000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
 # Variables de entorno por defecto (se pueden sobrescribir)
 ENV NODE_ENV=production
@@ -48,5 +56,5 @@ ENV PORT=4000
 ENV TMP_SCRIPT_DIR=/app/tmp
 ENV EXECUTION_MODE=headless
 
-# Comando de inicio
-CMD ["node", "src/index.js"]
+# Comando de inicio usando el script de startup
+CMD ["/app/startup.sh"]
