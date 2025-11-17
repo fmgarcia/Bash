@@ -28,6 +28,11 @@ if [ ! -d "$TMP_SCRIPT_DIR" ]; then
 fi
 echo "✅ Directorio temporal: $TMP_SCRIPT_DIR"
 
+# Regenerar cliente Prisma (por si hubo cambios en el schema)
+echo "🔄 Regenerando cliente Prisma..."
+npx prisma generate
+echo "✅ Cliente Prisma regenerado"
+
 # Probar conexión a la base de datos
 echo "Verificando conexión a base de datos..."
 node -e "
